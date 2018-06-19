@@ -116,7 +116,6 @@ class RepoSearchViewController: UIViewController {
         {
             if (self.footerView?.isAnimatingFinal)! {
                 self.isLoading = true
-                self.footerView?.isHidden = false
                 self.footerView?.startAnimate()
                 Timer.scheduledTimer(withTimeInterval: 1, repeats: false, block: { (timer:Timer) in
                     let request = SearchRepoService()
@@ -138,8 +137,8 @@ class RepoSearchViewController: UIViewController {
                                 self?.insertRepo(validResponse)
                             }
                         }
+                        self?.isLoading = false
                     })
-                    self.isLoading = false
                 })
             }
         }
@@ -243,7 +242,6 @@ extension RepoSearchViewController: UICollectionViewDelegateFlowLayout {
             let aFooterView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerViewReuseIdentifier, for: indexPath) as! RefreshFooterView
             self.footerView = aFooterView
             self.footerView?.backgroundColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
-            self.footerView?.isHidden = true
             return aFooterView
         } else {
             let headerView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerViewReuseIdentifier, for: indexPath)
@@ -260,7 +258,6 @@ extension RepoSearchViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, didEndDisplayingSupplementaryView view: UICollectionReusableView, forElementOfKind elementKind: String, at indexPath: IndexPath) {
         if elementKind == UICollectionElementKindSectionFooter {
             self.footerView?.stopAnimate()
-            self.footerView?.isHidden = true
         }
     }
 }

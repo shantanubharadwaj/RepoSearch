@@ -18,7 +18,7 @@ struct Repository: Decodable, CustomStringConvertible {
     let name: String
     let fullname: String
     let owner: Owner
-    let repoDesc: String
+    var repoDesc: String?
     var gitHubURL: URL?
     var forksList: URL?
     var contributorsList: URL?
@@ -36,7 +36,9 @@ struct Repository: Decodable, CustomStringConvertible {
         name = try container.decode(String.self, forKey: .name)
         fullname = try container.decode(String.self, forKey: .fullname)
         owner = try container.decode(Owner.self, forKey: .owner)
-        repoDesc = try container.decode(String.self, forKey: .repoDesc)
+        if let desc = try container.decodeIfPresent(String.self, forKey: .repoDesc){
+            repoDesc = desc
+        }
         if let urlString = try container.decodeIfPresent(String.self, forKey: .gitHubURL), let url = URL(string: urlString) {
             gitHubURL = url
         }
