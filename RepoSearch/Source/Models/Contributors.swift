@@ -2,20 +2,17 @@
 //  Contributors.swift
 //  RepoSearch
 //
-//  Created by Shantanu Dutta on 16/06/18.
+//  Created by Shantanu Dutta on 17/06/18.
 //  Copyright © 2018 Shantanu Dutta. All rights reserved.
 //
 
 import Foundation
 
-struct ContibutorList {
-    let contributorList: [Contributors]
-}
-
+// Model for Contributors
 struct Contributors: Decodable, CustomStringConvertible {
     let loginId: String
-    let avatarURL: URL
-    let userProfile: URL
+    var avatarURL: URL?
+    var userProfile: URL?
     let contributions: Int
     
     enum CodingKeys: String, CodingKey {

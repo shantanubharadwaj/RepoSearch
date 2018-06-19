@@ -2,7 +2,7 @@
 //  HttpResponse.swift
 //  RepoSearch
 //
-//  Created by Shantanu Dutta on 16/06/18.
+//  Created by Shantanu Dutta on 17/06/18.
 //  Copyright © 2018 Shantanu Dutta. All rights reserved.
 //
 
@@ -38,6 +38,7 @@ extension Http{
             return NSString(data: validData, encoding: encoding.rawValue) as String?
         }
         
+        /// Location provided to follow if redirect response is received.
         func locationHeader() -> URL? {
             print("Response:locationHeader() :: Header fields \(self.urlResponse.allHeaderFields)")
             guard let redirectURL = self.urlResponse.allHeaderFields[Http.Constants.location.get()] as? String else {
@@ -50,6 +51,7 @@ extension Http{
             return locationHeaderURL
         }
         
+        /// NextURL provided to follow in Link Header if subsequent request are to be made
         func nextUrl() -> URL? {
             guard let linkInfo = self.urlResponse.allHeaderFields[Constants.headerLink.get()] as? String else {
                 return nil
@@ -69,6 +71,7 @@ extension Http{
             return validUrl
         }
         
+        /// Number of limit remaining for the given authentication to perform a search.
         func limitRemaining() -> Int? {
             guard let limitLeft = self.urlResponse.allHeaderFields[Constants.limitRemaining.get()] as? Int else {
                 return nil
@@ -76,6 +79,7 @@ extension Http{
             return limitLeft
         }
         
+        /// Reset time (time left in seconds) to retry for new request.
         func resetTime() -> Date? {
             guard let resetTime = self.urlResponse.allHeaderFields[Constants.resetTime.get()] as? Int else {
                 return nil

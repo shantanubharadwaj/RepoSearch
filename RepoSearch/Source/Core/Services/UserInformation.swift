@@ -8,6 +8,8 @@
 
 import Foundation
 
+// User information data fetched after authentication data
+// TODO: Implementing user authentication pending...
 protocol UserInformation {
     var userCredentials: (userName: String, password: String)? { get }
     var userToken: (String)? { get }

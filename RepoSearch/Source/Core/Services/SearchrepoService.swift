@@ -8,13 +8,15 @@
 
 import Foundation
 
-// provide access via protocols . Services.search
+// TODO: provide access via protocols . Services.search
 
+/// SearchRepoService wraps the networks confguration formation and call to fetch repository data based on user search.
 struct SearchRepoService {
     fileprivate let httpWorker = Http.create("SearchService")
     private let operationQueue = OperationQueue()
     private var searchLanguage: String!
     
+    /// pass programming language to be searched as argument
     init?(_ language: String) {
         if let limit = LocalStore.get(for: .currentLimit) as? Int, limit <= 1 {
             if let timeLeft = LocalStore.get(for: .resetTime) as? Date, timeLeft.timeIntervalSinceNow > 0 {
@@ -27,6 +29,7 @@ struct SearchRepoService {
     
     init() {}
     
+    /// use this api to call the nextURL (if available) which was passed in the Link header during initial call.
     func fetchNextData(_ response: (([Repository]?) -> ())?) {
         guard let nextUrl = LocalStore.get(for: .nextUrl) as? URL else {
             response?(nil)
@@ -51,6 +54,7 @@ struct SearchRepoService {
                 return
             }
             
+            // removing local stored data, and updating local store as new values have been passed as headers
             LocalStore.remove(for: .nextUrl)
             LocalStore.remove(for: .currentLimit)
             LocalStore.remove(for: .resetTime)
@@ -82,6 +86,7 @@ struct SearchRepoService {
         operationQueue.addOperations([networkOperation], waitUntilFinished: false)
     }
     
+    // Fetch api to fetch repository info. 
     func fetch(_ response: (([Repository]?) -> ())?) {
         guard let request = URLConfiguration.searchRequest(searchLanguage).getRequest(), let _ = request.urlRequest.url else {
             response?(nil)

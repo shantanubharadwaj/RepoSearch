@@ -10,6 +10,7 @@ import UIKit
 
 private let reuseIdentifier = "RepoCell"
 
+// Controller for Repository Search. Pass the language in search bar to search for correspondng repository. Displays the repository in collection view.
 class RepoSearchViewController: UIViewController {
     @IBOutlet weak var searchBar: UISearchBar!
     @IBOutlet weak var collectionView: UICollectionView!
@@ -19,51 +20,140 @@ class RepoSearchViewController: UIViewController {
     fileprivate var currentSearchString = ""
     fileprivate var isSearchInProgress: Bool = false
     
+    var footerView: RefreshFooterView?
+    var isLoading = false
+    let footerViewReuseIdentifier = "RefreshFooterView"
+    
     private var repositories = [Array<Repository>](){
         didSet {
             print("New repo received : \(String(describing: repositories.first?.count))")
         }
     }
-
+    
     
     internal func insertRepo(_ newRepos: [Repository]) {
-        self.repositories.append(newRepos)
-//        let indexPaths = Array(0...(newRepos.count-1)).map { IndexPath(item: $0, section: 0) }
-        self.collectionView.reloadData()
-//        self.collectionView.insertItems(at: indexPaths)
-//        let dd = IndexSet
+        OperationQueue.main.addOperation {
+            self.repositories.append(newRepos)
+            self.collectionView.reloadData()
+        }
+        
+        //        let indexPaths = Array(0...(newRepos.count-1)).map { IndexPath(item: $0, section: 0) }
+        
+        //        self.collectionView.insertItems(at: indexPaths)
+        //        let dd = IndexSet
+        
+        //        self.collectionView.insertSections(In)
+    }
     
-//        self.collectionView.insertSections(In)
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if let indexPath = getIndexPathForSelectedCell() {
+            highlightCell(at: indexPath, shouldHighlight: false)
+        }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         collectionView.backgroundColor = .clear
         collectionView.contentInset = sectionInsets
-        
+        self.collectionView.register(UINib(nibName: "CustomFooterView", bundle: nil), forSupplementaryViewOfKind: UICollectionElementKindSectionFooter, withReuseIdentifier: footerViewReuseIdentifier)
         var font = UIFont.preferredFont(forTextStyle: .headline).withSize(17)
         font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: font)
         let attributes = [NSAttributedStringKey.font: font]
         UINavigationBar.appearance().titleTextAttributes = attributes
         title = "RepoSearch"
     }
-
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        title = "RepoSearch"
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
     
-
-    /*
+    func highlightCell(at indexPath: IndexPath, shouldHighlight: Bool) {
+        let cell = collectionView.cellForItem(at: indexPath)
+        if shouldHighlight {
+            cell?.contentView.backgroundColor = #colorLiteral(red: 0.6000000238, green: 0.6000000238, blue: 0.6000000238, alpha: 1)
+        }else{
+            cell?.contentView.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        }
+    }
+    
+    func getIndexPathForSelectedCell() -> IndexPath? {
+        var indexPath:IndexPath?
+        if let indexpaths = collectionView.indexPathsForSelectedItems, indexpaths.count > 0 {
+            indexPath = indexpaths.first
+        }
+        return indexPath
+    }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let threshold   = 100.0
+        let contentOffset = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        let diffHeight = contentHeight - contentOffset
+        let frameHeight = scrollView.bounds.size.height
+        var triggerThreshold  = Float((diffHeight - frameHeight))/Float(threshold)
+        triggerThreshold   =  min(triggerThreshold, 0.0)
+        let pullRatio  = min(fabs(triggerThreshold),1.0)
+        self.footerView?.setTransform(inTransform: CGAffineTransform.identity, scaleFactor: CGFloat(pullRatio))
+        if pullRatio >= 1 {
+            self.footerView?.animateFinal()
+        }
+    }
+    
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        let contentOffset = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        let diffHeight = contentHeight - contentOffset
+        let frameHeight = scrollView.bounds.size.height
+        let pullHeight  = fabs(diffHeight - frameHeight)
+        if pullHeight <= 10.0
+        {
+            if (self.footerView?.isAnimatingFinal)! {
+                self.isLoading = true
+                self.footerView?.isHidden = false
+                self.footerView?.startAnimate()
+                Timer.scheduledTimer(withTimeInterval: 1, repeats: false, block: { (timer:Timer) in
+                    let request = SearchRepoService()
+                    self.isSearchInProgress = true
+                    OperationQueue.main.addOperation {
+                        if !UIApplication.shared.isNetworkActivityIndicatorVisible {
+                            UIApplication.shared.isNetworkActivityIndicatorVisible = true
+                        }
+                    }
+                    request.fetchNextData({ [weak self] response  in
+                        self?.isSearchInProgress = false
+                        OperationQueue.main.addOperation {
+                            if UIApplication.shared.isNetworkActivityIndicatorVisible {
+                                UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                            }
+                        }
+                        if let validResponse = response {
+                            OperationQueue.main.addOperation {[weak self] in
+                                self?.insertRepo(validResponse)
+                            }
+                        }
+                    })
+                    self.isLoading = false
+                })
+            }
+        }
+    }
+    
     // MARK: - Navigation
-
+    
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
+        title = ""
+        if segue.identifier == "ShowDetailSegue", let indexPath = getIndexPathForSelectedCell(), let repoDetailVC = segue.destination as? RepositoryDetailsViewController {
+            repoDetailVC.repoDetails = repositories[indexPath.section][indexPath.item]
+        }
     }
-    */
-
 }
 
 extension RepoSearchViewController: UICollectionViewDelegate {
@@ -72,6 +162,14 @@ extension RepoSearchViewController: UICollectionViewDelegate {
         UIView.animate(withDuration: 1.0) {
             cell.alpha = 1.0
         }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        highlightCell(at: indexPath, shouldHighlight: true)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+        highlightCell(at: indexPath, shouldHighlight: false)
     }
 }
 
@@ -125,6 +223,7 @@ extension RepoSearchViewController: UICollectionViewDataSource{
 }
 
 extension RepoSearchViewController: UICollectionViewDelegateFlowLayout {
+    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let paddingSpace = cellsectionInsets.left * (itemsPerRow + 1)
         let availableWidth = view.frame.width - paddingSpace
@@ -132,18 +231,39 @@ extension RepoSearchViewController: UICollectionViewDelegateFlowLayout {
         return CGSize(width: widthPerItem, height: widthPerItem)
     }
     
-//    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-//        return cellsectionInsets
-//    }
-//
-//    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-//        return cellsectionInsets.left
-//    }
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForFooterInSection section: Int) -> CGSize {
+        if isLoading {
+            return CGSize.zero
+        }
+        return CGSize(width: collectionView.bounds.size.width, height: 55)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        if kind == UICollectionElementKindSectionFooter {
+            let aFooterView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerViewReuseIdentifier, for: indexPath) as! RefreshFooterView
+            self.footerView = aFooterView
+            self.footerView?.backgroundColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
+            self.footerView?.isHidden = true
+            return aFooterView
+        } else {
+            let headerView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerViewReuseIdentifier, for: indexPath)
+            return headerView
+        }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, willDisplaySupplementaryView view: UICollectionReusableView, forElementKind elementKind: String, at indexPath: IndexPath) {
+        if elementKind == UICollectionElementKindSectionFooter {
+            self.footerView?.prepareInitialAnimation()
+        }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didEndDisplayingSupplementaryView view: UICollectionReusableView, forElementOfKind elementKind: String, at indexPath: IndexPath) {
+        if elementKind == UICollectionElementKindSectionFooter {
+            self.footerView?.stopAnimate()
+            self.footerView?.isHidden = true
+        }
+    }
 }
-
-//extension RepoSearchViewController: UICollectionViewDataSourcePrefetching{
-//
-//}
 
 extension RepoSearchViewController: UISearchBarDelegate {
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
@@ -179,8 +299,15 @@ extension RepoSearchViewController: UISearchBarDelegate {
                 }
             }else{
                 // throw alert to try after some time
+                showAlert(withTitle: "Try after few seconds !!", buttonTitle: "Ok", andMessage: "The servers are busy. Please try after few seconds.")
             }
         }
         
+    }
+    
+    func showAlert(withTitle title: String, buttonTitle: String, andMessage message: String) {
+        let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alertController.addAction(UIAlertAction(title: buttonTitle, style: .default, handler: nil))
+        self.present(alertController, animated: true, completion: nil)
     }
 }

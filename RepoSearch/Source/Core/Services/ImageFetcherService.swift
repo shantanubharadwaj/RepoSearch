@@ -9,22 +9,24 @@
 import Foundation
 import UIKit
 
+/// ImageFetcherService wraps the networks confguration formation and call to fetch image data based on passed image url.
 class ImageFetcherService {
-    fileprivate let httpWorker = Http.create("SearchService")
+    fileprivate let httpWorker = Http.create("ImageService")
     private let operationQueue = OperationQueue()
     private let imageURL: URL
     
+    /// pass url of image to be passed
     init(url: URL) {
         imageURL = url
     }
     
     func fetch(_ response: ((UIImage?) -> ())?){
-        guard let nextrequest = URLConfiguration.generalRequest(imageURL).getRequest(), let _ = nextrequest.urlRequest.url else {
+        guard let request = URLConfiguration.generalRequest(imageURL).getRequest(), let _ = request.urlRequest.url else {
             response?(nil)
             return
         }
         
-        let networkOperation = RequestData(withURLRequest: nextrequest, andNetworkingProvider: httpWorker)
+        let networkOperation = RequestData(withURLRequest: request, andNetworkingProvider: httpWorker)
         networkOperation.qualityOfService = .userInitiated
         
         networkOperation.completionBlock = {

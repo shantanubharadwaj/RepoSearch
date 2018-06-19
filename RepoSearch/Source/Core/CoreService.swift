@@ -8,9 +8,9 @@
 
 import Foundation
 
+// Core service to provide interface to all the internal services
 struct CoreService {
     var userService: UserInformation {
         return UserInfo()
     }
-    
 }

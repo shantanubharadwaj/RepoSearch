@@ -8,6 +8,7 @@
 
 import UIKit
 
+// Custom Collection view cell to display repository info.
 class RepositoryViewCell: UICollectionViewCell {
     @IBOutlet weak var containerView: UIView!
     @IBOutlet weak var cellBackground: UIImageView!
@@ -23,7 +24,17 @@ class RepositoryViewCell: UICollectionViewCell {
         starsLabel.text = "\(repo.stars) ⭐️"
         if let userImageUrl = repo.owner.avatarUrl {
             let request = ImageFetcherService(url: userImageUrl)
+            OperationQueue.main.addOperation {
+                if !UIApplication.shared.isNetworkActivityIndicatorVisible {
+                    UIApplication.shared.isNetworkActivityIndicatorVisible = true
+                }
+            }
             request.fetch { [weak self] avImage in
+                OperationQueue.main.addOperation {
+                    if UIApplication.shared.isNetworkActivityIndicatorVisible {
+                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                    }
+                }
                 if let image = avImage{
                     OperationQueue.main.addOperation {
                         self?.avatarImage.image = image
